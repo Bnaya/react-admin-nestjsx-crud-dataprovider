@@ -1,0 +1,63 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Basic tests Basic test 1 1`] = `
+Object {
+  "data": Object {
+    "id": 1,
+  },
+}
+`;
+
+exports[`Basic tests Basic test 1 2`] = `
+[MockFunction] {
+  "calls": Array [
+    Array [
+      "https://test.test/api/books/5?",
+      Object {},
+    ],
+  ],
+  "results": Array [
+    Object {
+      "type": "return",
+      "value": Object {
+        "json": Object {
+          "id": 1,
+        },
+      },
+      "wasPromise": true,
+    },
+  ],
+}
+`;
+
+exports[`encodeParamsInResource tests encodeParamsInResource test 1 1`] = `"books_._._._{\\"fields\\":[\\"id\\",\\"name\\",\\"year\\"],\\"join\\":[{\\"field\\":\\"pages\\",\\"select\\":[\\"number\\",\\"words\\"]},{\\"field\\":\\"author\\",\\"select\\":[\\"id\\",\\"name\\"]},{\\"field\\":\\"author.favoriteFood\\",\\"select\\":[\\"id\\",\\"name\\"]}]}"`;
+
+exports[`encoded params tests encoded params test 1 1`] = `
+Object {
+  "data": Object {
+    "id": 1,
+  },
+}
+`;
+
+exports[`encoded params tests encoded params test 1 2`] = `
+[MockFunction] {
+  "calls": Array [
+    Array [
+      "https://test.test/api/books/5?join[]=pages||number,words&join[]=author||id,name&join[]=author.favoriteFood||id,name&fields=id,name,year",
+      Object {},
+    ],
+  ],
+  "results": Array [
+    Object {
+      "type": "return",
+      "value": Object {
+        "json": Object {
+          "id": 1,
+        },
+      },
+      "wasPromise": true,
+    },
+  ],
+}
+`;

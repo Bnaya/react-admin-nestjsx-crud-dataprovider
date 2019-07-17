@@ -1,6 +1,4 @@
-// @ts-check
-
-import { RequestQueryBuilder, CondOperator } from '@nestjsx/crud-request';
+import { RequestQueryBuilder, CondOperator } from "@nestjsx/crud-request";
 import {
   fetchUtils,
   GET_LIST,
@@ -11,27 +9,44 @@ import {
   UPDATE,
   UPDATE_MANY,
   DELETE,
-  DELETE_MANY,
-} from 'react-admin';
+  DELETE_MANY
+} from "ra-core";
 
-export default (apiUrl, httpClient = fetchUtils.fetchJson) => {
-  const composeFilter = (paramsFilter) => {
+/**
+ * @param {any} apiUrl
+ * @param {any} httpClient
+ * @param {import("./interfaces").ConfigurationEntry} configuration
+ */
+export default function createNestjsxCrudClient(
+  apiUrl,
+  httpClient = fetchUtils.fetchJson,
+  configuration = {}
+) {
+  /**
+   * @param {any} paramsFilter
+   */
+  function composeFilter(paramsFilter) {
     const flatFilter = fetchUtils.flattenObject(paramsFilter);
     const filter = Object.keys(flatFilter).map(key => {
-      const splitKey = key.split('||');
+      const splitKey = key.split("||");
       const ops = splitKey[1] ? splitKey[1] : CondOperator.CONTAINS;
       let field = splitKey[0];
 
-      if (field.indexOf('_') === 0 && field.indexOf('.') > -1) {
+      if (field.indexOf("_") === 0 && field.indexOf(".") > -1) {
         field = field.split(/\.(.+)/)[1];
       }
       return { field, operator: ops, value: flatFilter[key] };
     });
     return filter;
-  };
+  }
 
+  /**
+   * @param {any} type
+   * @param {string} resource
+   * @param {{ pagination: { page: any; perPage: any; }; filter: any; sort: { field: string; order: "ASC" | "DESC"; }; id: any; ids: any; target: string; data: any; }} params
+   */
   const convertDataRequestToHTTP = (type, resource, params) => {
-    let url = '';
+    let url = "";
     const options = {};
     const parsedResource = extractRealResourceAndParams(resource);
 
@@ -40,71 +55,72 @@ export default (apiUrl, httpClient = fetchUtils.fetchJson) => {
         const { page, perPage } = params.pagination;
 
         let query = RequestQueryBuilder
+          // @ts-ignore
           .create({
-            filter: composeFilter(params.filter),
+            filter: composeFilter(params.filter)
           })
           .setLimit(perPage)
           .setPage(page)
           .sortBy(params.sort)
-          .setOffset((page - 1) * perPage)
+          .setOffset((page - 1) * perPage);
 
-          if (parsedResource.params) {
-            if (parsedResource.params.join) {
-              parsedResource.params.join.forEach((join) => {
-                query = query.setJoin(join);
-              });
-            }
-  
-            if (parsedResource.params.fields) {
-              query = query.select(parsedResource.params.fields);
-            }
+        if (parsedResource.integratedParams) {
+          if (parsedResource.integratedParams.join) {
+            parsedResource.integratedParams.join.forEach(join => {
+              query = query.setJoin(join);
+            });
           }
 
-        url = `${apiUrl}/${parsedResource.resource}?${query.query()}`;
+          if (parsedResource.integratedParams.fields) {
+            query = query.select(parsedResource.integratedParams.fields);
+          }
+        }
+
+        url = `${apiUrl}/${parsedResource.realResource}?${query.query()}`;
 
         break;
       }
       case GET_ONE: {
         let query = RequestQueryBuilder.create();
 
-        if (parsedResource.params) {
-          if (parsedResource.params.join) {
-            parsedResource.params.join.forEach((join) => {
+        if (parsedResource.integratedParams) {
+          if (parsedResource.integratedParams.join) {
+            parsedResource.integratedParams.join.forEach(join => {
               query = query.setJoin(join);
             });
           }
 
-          if (parsedResource.params.fields) {
-            query = query.select(parsedResource.params.fields);
+          if (parsedResource.integratedParams.fields) {
+            query = query.select(parsedResource.integratedParams.fields);
           }
         }
 
-        url = `${apiUrl}/${parsedResource.resource}/${params.id}?${query.query()}`;
+        url = `${apiUrl}/${parsedResource.realResource}/${
+          params.id
+        }?${query.query()}`;
 
         break;
       }
       case GET_MANY: {
-        let query = RequestQueryBuilder
-          .create()
-          .setFilter({
-            field: 'id',
-            operator: CondOperator.IN,
-            value: `${params.ids}`,
-          });
+        let query = RequestQueryBuilder.create().setFilter({
+          field: "id",
+          operator: CondOperator.IN,
+          value: `${params.ids}`
+        });
 
-        if (parsedResource.params) {
-          if (parsedResource.params.join) {
-            parsedResource.params.join.forEach((join) => {
+        if (parsedResource.integratedParams) {
+          if (parsedResource.integratedParams.join) {
+            parsedResource.integratedParams.join.forEach(join => {
               query = query.setJoin(join);
             });
           }
 
-          if (parsedResource.params.fields) {
-            query = query.select(parsedResource.params.fields);
+          if (parsedResource.integratedParams.fields) {
+            query = query.select(parsedResource.integratedParams.fields);
           }
         }
 
-        url = `${apiUrl}/${parsedResource.resource}?${query.query()}`;
+        url = `${apiUrl}/${parsedResource.realResource}?${query.query()}`;
 
         break;
       }
@@ -115,48 +131,49 @@ export default (apiUrl, httpClient = fetchUtils.fetchJson) => {
         filter.push({
           field: params.target,
           operator: CondOperator.EQUALS,
-          value: params.id,
+          value: params.id
         });
 
         let query = RequestQueryBuilder
+          // @ts-ignore
           .create({
-            filter,
+            filter
           })
           .sortBy(params.sort)
           .setLimit(perPage)
           .setOffset((page - 1) * perPage);
 
-        if (parsedResource.params) {
-          if (parsedResource.params.join) {
-            parsedResource.params.join.forEach((join) => {
+        if (parsedResource.integratedParams) {
+          if (parsedResource.integratedParams.join) {
+            parsedResource.integratedParams.join.forEach(join => {
               query = query.setJoin(join);
             });
           }
 
-          if (parsedResource.params.fields) {
-            query = query.select(parsedResource.params.fields);
+          if (parsedResource.integratedParams.fields) {
+            query = query.select(parsedResource.integratedParams.fields);
           }
         }
 
-        url = `${apiUrl}/${parsedResource.resource}?${query.query()}`;
+        url = `${apiUrl}/${parsedResource.realResource}?${query.query()}`;
 
         break;
       }
       case UPDATE: {
-        url = `${apiUrl}/${parsedResource.resource}/${params.id}`;
-        options.method = 'PATCH';
+        url = `${apiUrl}/${parsedResource.realResource}/${params.id}`;
+        options.method = "PATCH";
         options.body = JSON.stringify(params.data);
         break;
       }
       case CREATE: {
-        url = `${apiUrl}/${parsedResource.resource}`;
-        options.method = 'POST';
+        url = `${apiUrl}/${parsedResource.realResource}`;
+        options.method = "POST";
         options.body = JSON.stringify(params.data);
         break;
       }
       case DELETE: {
-        url = `${apiUrl}/${parsedResource.resource}/${params.id}`;
-        options.method = 'DELETE';
+        url = `${apiUrl}/${parsedResource.realResource}/${params.id}`;
+        options.method = "DELETE";
         break;
       }
       default:
@@ -165,56 +182,108 @@ export default (apiUrl, httpClient = fetchUtils.fetchJson) => {
     return { url, options };
   };
 
-  const convertHTTPResponse = (response, type, resource, params) => {
+  /**
+   * @param {{ headers: any; json: any; }} response
+   * @param {any} type
+   * @param {string} resource
+   * @param {{ data: any; }} params
+   */
+  function convertHTTPResponse(response, type, resource, params) {
     const { headers, json } = response;
     switch (type) {
       case GET_LIST:
       case GET_MANY_REFERENCE:
         return {
           data: json.data,
-          total: json.total,
+          total: json.total
         };
       case CREATE:
         return { data: { ...params.data, id: json.id } };
       default:
         return { data: json };
     }
-  };
+  }
 
-  return (type, resource, params) => {
+  return makeNestjsxCrudRequest;
+
+  /**
+   * @param {any} type
+   * @param {string} resource
+   * @param {any} params
+   */
+  function makeNestjsxCrudRequest(type, resource, params) {
     const parsedResource = extractRealResourceAndParams(resource);
+    let intermediate = { type, resource: parsedResource.realResource, params };
 
-    if (type === UPDATE_MANY) {
-      return Promise.all(
-        params.ids.map(id => httpClient(`${apiUrl}/${parsedResource.resource}/${id}`, {
-          method: 'PUT',
-          body: JSON.stringify(params.data),
-        })),
-      )
-        .then(responses => ({
-          data: responses.map(response => response.json),
-        }));
+    if (configuration && configuration.requestMutator) {
+      intermediate = configuration.requestMutator(intermediate);
     }
-    if (type === DELETE_MANY) {
+
+    if (intermediate.type === UPDATE_MANY) {
       return Promise.all(
-        params.ids.map(id => httpClient(`${apiUrl}/${parsedResource.resource}/${id}`, {
-          method: 'DELETE',
-        })),
+        intermediate.params.ids.map(
+          /**
+           * @param {any} id
+           */ id =>
+            httpClient(`${apiUrl}/${parsedResource.realResource}/${id}`, {
+              method: "PUT",
+              body: JSON.stringify(intermediate.params.data)
+            })
+        )
       ).then(responses => ({
-        data: responses.map(response => response.json),
+        data: responses.map(response => response.json)
+      }));
+    }
+    if (intermediate.type === DELETE_MANY) {
+      return Promise.all(
+        intermediate.params.ids.map(
+          /**
+           * @param {any} id
+           */ id =>
+            httpClient(`${apiUrl}/${parsedResource.realResource}/${id}`, {
+              method: "DELETE"
+            })
+        )
+      ).then(responses => ({
+        data: responses.map(response => response.json)
       }));
     }
 
     const { url, options } = convertDataRequestToHTTP(
-      type,
+      intermediate.type,
+      // Original and not intermediate here.
       resource,
-      params,
+      intermediate.params
     );
+
     return httpClient(url, options).then(
-      response => convertHTTPResponse(response, type, resource, params),
+      /**
+       * @param {{ headers: any; json: any; }} response
+       */ response => {
+        // maybe pass here original and not intermediate values?
+        let responseIntermediate = {
+          response,
+          type: intermediate.type,
+          resource: intermediate.resource,
+          params: intermediate.params
+        };
+
+        if (configuration && configuration.responseMutator) {
+          responseIntermediate = configuration.responseMutator(
+            responseIntermediate
+          );
+        }
+
+        return convertHTTPResponse(
+          response,
+          responseIntermediate.type,
+          responseIntermediate.resource,
+          responseIntermediate.params
+        );
+      }
     );
-  };
-};
+  }
+}
 
 const MAGIC_SEPARATOR = "_._._._";
 
@@ -224,26 +293,29 @@ const MAGIC_SEPARATOR = "_._._._";
 function extractRealResourceAndParams(resourceMaybeWithEncoded) {
   if (!resourceMaybeWithEncoded.includes(MAGIC_SEPARATOR)) {
     return {
-      resource: resourceMaybeWithEncoded
+      realResource: resourceMaybeWithEncoded
     };
   }
 
-  const [resource, paramsStr] = resourceMaybeWithEncoded.split(MAGIC_SEPARATOR);
+  const [realResource, paramsStr] = resourceMaybeWithEncoded.split(
+    MAGIC_SEPARATOR
+  );
 
   try {
     /**
      * @type {Pick<import("@nestjsx/crud-request").CreateQueryParams, "join" | "fields">} params
      */
-    const params = JSON.parse(paramsStr);
+    const integratedParams = JSON.parse(paramsStr);
 
     return {
-      resource,
-      params
+      realResource,
+      integratedParams
     };
   } catch (e) {
-    console.warn("failed to parse params", { resource, paramsStr });
+    // @ts-ignore
+    console.warn("failed to parse params", { realResource, paramsStr });
     return {
-      resource
+      realResource
     };
   }
 }
